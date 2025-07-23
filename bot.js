@@ -2321,7 +2321,7 @@ bot.on('message', async (msg) => {
   }
   
   // Mark as processed immediately to prevent race conditions
-  processedMessages.add(messageKey);
+  processedMessages.set(messageKey, true);
   
   // Performance monitoring
   messageCount++;
@@ -2356,8 +2356,10 @@ bot.on('message', async (msg) => {
 // Async message processing function
 async function processMessageAsync(msg, messageKey, userId, messageText, userDisplayName) {
   try {
+    console.log(`[DEBUG] Calling processMessageOptimized for userId: ${userId}, messageKey: ${messageKey}`);
     // Use optimized message processing
     await processMessageOptimized(msg, messageKey, userId, messageText, userDisplayName);
+    console.log(`[DEBUG] Finished processMessageOptimized for userId: ${userId}, messageKey: ${messageKey}`);
     
     // Check if user is connected (with timeout and circuit breaker)
     const userCheckPromise = dbCircuitBreaker.execute(async () => {
