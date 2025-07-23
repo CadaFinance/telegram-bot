@@ -1,0 +1,57 @@
+{
+  "name": "bblip-telegram-bot-optimized",
+  "version": "2.0.0",
+  "description": "BBLIP Telegram Bot with advanced performance optimizations",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node --max-old-space-size=1024 bot.js",
+    "dev": "nodemon --max-old-space-size=1024 bot.js",
+    "start:optimized": "node --max-old-space-size=1024 --expose-gc bot.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "health": "curl http://localhost:3001/health",
+    "monitor": "node monitor.js",
+    "cleanup": "node cleanup.js"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "xp",
+    "rewards",
+    "blockchain",
+    "bblip",
+    "optimized",
+    "performance",
+    "cache",
+    "batch-processing"
+  ],
+  "author": "BBLIP Team",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.50.2",
+    "dotenv": "^17.2.0",
+    "express": "^5.1.0",
+    "node-telegram-bot-api": "^0.64.0",
+    "lru-cache": "^10.2.0",
+    "prom-client": "^15.1.0",
+    "ioredis": "^5.3.2",
+    "cluster": "^0.7.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0",
+    "pm2": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "performance": {
+    "memory": "512MB",
+    "cpu": "2 cores",
+    "cache": "LRU with 1000 entries",
+    "batch": "30 second intervals"
+  },
+  "monitoring": {
+    "health": "http://localhost:3001/health",
+    "metrics": "Prometheus compatible",
+    "memory": "Auto cleanup at 500MB"
+  }
+} 
