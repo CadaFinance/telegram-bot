@@ -103,6 +103,20 @@ class BatchProcessor {
     const batch = this.queue.splice(0, this.batchSize);
     
     try {
+      // Her kullanıcı için mevcut total_xp'yi çekip cache ile topla
+      for (const update of batch) {
+        const { telegramId, data } = update;
+        const { data: activity, error } = await supabase
+          .from('telegram_activities')
+          .select('total_xp')
+          .eq('telegram_id', telegramId)
+          .single();
+        let currentTotalXP = 0;
+        if (!error && activity && typeof activity.total_xp === 'number') {
+          currentTotalXP = activity.total_xp;
+        }
+        update.data.totalXP = currentTotalXP + data.xpEarned;
+      }
       await this.executeBatch(batch);
       metrics.batchUpdates++;
     } catch (error) {
@@ -117,7 +131,7 @@ class BatchProcessor {
     const updates = batch.map(({ telegramId, data }) => ({
       telegram_id: telegramId,
       message_count: data.messageCount,
-      xp_earned: data.xpEarned,
+      total_xp: data.totalXP, // cache + db toplamı
       updated_at: new Date().toISOString()
     }));
     
