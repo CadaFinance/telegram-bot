@@ -88,20 +88,43 @@ class BatchProcessor {
     this.interval = null;
   }
   
+  start() {
+    console.log('[BatchProcessor] Starting batch interval:', this.batchInterval, 'ms');
+    this.interval = setInterval(() => {
+      console.log('[BatchProcessor] Batch interval triggered. Queue length:', this.queue.length);
+      this.processBatch();
+    }, this.batchInterval);
+  }
+  
+  stop() {
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+      console.log('[BatchProcessor] Batch interval stopped.');
+    }
+  }
+  
   add(update) {
     this.queue.push(update);
-    
+    console.log('[BatchProcessor] Update added to queue. Queue length:', this.queue.length, 'Update:', update);
     if (this.queue.length >= this.batchSize) {
+      console.log('[BatchProcessor] Queue reached batch size. Triggering processBatch.');
       this.processBatch();
     }
   }
   
   async processBatch() {
-    if (this.processing || this.queue.length === 0) return;
-    
+    if (this.processing) {
+      console.log('[BatchProcessor] Already processing. Skipping.');
+      return;
+    }
+    if (this.queue.length === 0) {
+      console.log('[BatchProcessor] Queue empty. Nothing to process.');
+      return;
+    }
     this.processing = true;
     const batch = this.queue.splice(0, this.batchSize);
-    
+    console.log('[BatchProcessor] Processing batch. Batch size:', batch.length, 'Batch:', JSON.stringify(batch));
     try {
       // Her kullanıcı için mevcut total_xp'yi çekip cache ile topla
       for (const update of batch) {
@@ -119,8 +142,9 @@ class BatchProcessor {
       }
       await this.executeBatch(batch);
       metrics.batchUpdates++;
+      console.log('[BatchProcessor] Batch processed successfully.');
     } catch (error) {
-      console.error('❌ Batch processing error:', error);
+      console.error('[BatchProcessor] Batch processing error:', error);
       metrics.errors++;
     } finally {
       this.processing = false;
@@ -128,6 +152,7 @@ class BatchProcessor {
   }
   
   async executeBatch(batch) {
+    console.log('[BatchProcessor] Executing batch upsert. Updates:', JSON.stringify(batch));
     const updates = batch.map(({ telegramId, data }) => ({
       telegram_id: telegramId,
       message_count: data.messageCount,
@@ -143,22 +168,13 @@ class BatchProcessor {
           ignoreDuplicates: false 
         });
       
-      if (error) throw error;
+      if (error) {
+        console.error('[BatchProcessor] Upsert error:', error);
+        throw error;
+      }
+      console.log('[BatchProcessor] Upsert successful. Row count:', updates.length);
       return { processed: updates.length };
     });
-  }
-  
-  start() {
-    this.interval = setInterval(() => {
-      this.processBatch();
-    }, this.batchInterval);
-  }
-  
-  stop() {
-    if (this.interval) {
-      clearInterval(this.interval);
-      this.interval = null;
-    }
   }
 }
 
