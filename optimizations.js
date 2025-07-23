@@ -89,9 +89,7 @@ class BatchProcessor {
   }
   
   add(update) {
-    console.log(`[BATCH] add called for telegramId: ${update.telegramId}, queue length before: ${this.queue.length}`);
     this.queue.push(update);
-    console.log(`[BATCH] queue length after: ${this.queue.length}`);
     
     if (this.queue.length >= this.batchSize) {
       this.processBatch();
@@ -99,7 +97,6 @@ class BatchProcessor {
   }
   
   async processBatch() {
-    console.log(`[BATCH] processBatch called. Queue length: ${this.queue.length}, processing: ${this.processing}`);
     if (this.processing || this.queue.length === 0) return;
     
     this.processing = true;
@@ -117,7 +114,6 @@ class BatchProcessor {
   }
   
   async executeBatch(batch) {
-    console.log(`[BATCH] executeBatch called. Batch size: ${batch.length}`);
     const updates = batch.map(({ telegramId, data }) => ({
       telegram_id: telegramId,
       message_count: data.messageCount,

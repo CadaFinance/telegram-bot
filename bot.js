@@ -2356,10 +2356,8 @@ bot.on('message', async (msg) => {
 // Async message processing function
 async function processMessageAsync(msg, messageKey, userId, messageText, userDisplayName) {
   try {
-    console.log(`[DEBUG] Calling processMessageOptimized for userId: ${userId}, messageKey: ${messageKey}`);
     // Use optimized message processing
     await processMessageOptimized(msg, messageKey, userId, messageText, userDisplayName);
-    console.log(`[DEBUG] Finished processMessageOptimized for userId: ${userId}, messageKey: ${messageKey}`);
     
     // Check if user is connected (with timeout and circuit breaker)
     const userCheckPromise = dbCircuitBreaker.execute(async () => {
@@ -2446,7 +2444,7 @@ async function processMessageAsync(msg, messageKey, userId, messageText, userDis
       cached.messageCount += 1;
       cached.xpEarned += xpEarned;
       cached.lastUpdate = Date.now();
-      cached.processedMessages.add(messageKey);
+      cached.processedMessages.set(messageKey, true);
     } else {
       cached = {
         messageCount: 1,
