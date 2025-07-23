@@ -2444,7 +2444,7 @@ async function processMessageAsync(msg, messageKey, userId, messageText, userDis
       cached.messageCount += 1;
       cached.xpEarned += xpEarned;
       cached.lastUpdate = Date.now();
-      cached.processedMessages.set(messageKey, true);
+      cached.processedMessages.add(messageKey);
     } else {
       cached = {
         messageCount: 1,
