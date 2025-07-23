@@ -2321,7 +2321,7 @@ bot.on('message', async (msg) => {
   }
   
   // Mark as processed immediately to prevent race conditions
-  processedMessages.set(messageKey, true);
+  processedMessages.add(messageKey);
   
   // Performance monitoring
   messageCount++;
@@ -2444,7 +2444,7 @@ async function processMessageAsync(msg, messageKey, userId, messageText, userDis
       cached.messageCount += 1;
       cached.xpEarned += xpEarned;
       cached.lastUpdate = Date.now();
-      cached.processedMessages.set(messageKey, true);
+      cached.processedMessages.add(messageKey);
     } else {
       cached = {
         messageCount: 1,
