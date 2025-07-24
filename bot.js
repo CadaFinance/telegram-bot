@@ -19,7 +19,7 @@ const {
 } = require('./optimizations');
 
 // Environment variables - Production values
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '7623563807:AAF-x22UGR5xeAVOqLsXbiMEnMtQYuviy-4';
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8482465404:AAEXHvQ4s2lE3cPSRk5ZErG4w_ybvZjyEHA';
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://vdsoduzvmnuyhwbbnkwi.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkc29kdXp2bW51eWh3YmJua3dpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2MTczNDUsImV4cCI6MjA2NjE5MzM0NX0.stWTGS03eY8IdftKpeylOHURDAkmf6LiKas4_Jdd5cw';
 const GROUP_ID = process.env.TELEGRAM_GROUP_ID || '-1002823529287';

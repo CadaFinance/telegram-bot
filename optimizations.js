@@ -9,7 +9,7 @@ function setSupabaseClient(supabaseClient) {
   supabase = supabaseClient;
 }
 
-module.exports.setSupabaseClient = setSupabaseClient;
+module.exports.setSupabaseClient = setSupabaseClient; 
 
 // Optimized polling configuration
 const OPTIMIZED_POLLING_CONFIG = {
