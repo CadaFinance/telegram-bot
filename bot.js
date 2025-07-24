@@ -67,6 +67,28 @@ let messageCount = 0;
 let lastMessageTime = Date.now();
 const PERFORMANCE_LOG_INTERVAL = 100; // Log every 100 messages
 
+// Add uptime tracking
+const botStartTime = Date.now();
+let totalMessagesProcessed = 0;
+let totalXPAwarded = 0;
+
+// Enhanced performance monitoring
+function logPerformanceStats() {
+  const uptime = Date.now() - botStartTime;
+  const uptimeHours = Math.floor(uptime / (1000 * 60 * 60));
+  const uptimeMinutes = Math.floor((uptime % (1000 * 60 * 60)) / (1000 * 60));
+  
+  console.log(`📊 Bot Performance Stats:`);
+  console.log(`  - Uptime: ${uptimeHours}h ${uptimeMinutes}m`);
+  console.log(`  - Total Messages: ${totalMessagesProcessed}`);
+  console.log(`  - Total XP Awarded: ${totalXPAwarded}`);
+  console.log(`  - Cache Size: ${messageCache.size} users`);
+  console.log(`  - Processed Messages: ${processedMessages.size}`);
+  console.log(`  - Queue Size: ${messageQueue.length}`);
+  console.log(`  - Active Users: ${userMessageHistory.size}`);
+  console.log(`  - Memory Usage: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
+}
+
 // Anti-bot tracking (optimized with LRU cache)
 const userMessageHistory = new LRUCache({
   max: 1000,
@@ -136,9 +158,16 @@ initializeOptimizations();
 
 // Set supabase client for optimizations
 setSupabaseClient(supabase);
+
+// Start periodic performance logging (every 5 minutes)
+setInterval(() => {
+  logPerformanceStats();
+}, 5 * 60 * 1000);
+
 console.log('🤖 [BOT] Bot initialized successfully');
 console.log('📊 [BOT] Supabase client initialized with connection pooling');
 console.log('🚀 [BOT] Optimizations initialized');
+console.log('📈 [BOT] Performance monitoring enabled');
 console.log('🔍 [BOT] Ready to listen for messages...');
 
 // XP calculation constants
@@ -1452,7 +1481,7 @@ bot.onText(/\/help/, async (msg) => {
   let message = `🤖 <b>BBLIP Telegram Bot Help</b> 🤖\n\n<b>User Commands</b>\n/start — Connect your account\n/my_xp — View your XP & level\n/my_referral — Get your referral link\n/leaderboard — View top users\n/help — Show this help\n\n<b>How to Earn</b>\n• Chat to earn XP automatically\n• Invite friends for bonus rewards\n• Level up for bigger daily BBLP\n\n<i>Tip: Connect your wallet to unlock all features and maximize your rewards!</i>\n\nFor more info, visit <a href='https://bblip.io/social-connections'>bblip.io/social-connections</a>`;
 
   if (isAdmin) {
-    message += `\n\n<b>Admin Commands</b>\n/ban, /unban, /restrict, /warn`;
+    message += `\n\n<b>Admin Commands</b>\n/ban, /unban, /restrict, /warn, /batch_debug, /process_batch, /test_xp`;
   }
 
   await sendMessageWithRateLimit(chatId, message, { parse_mode: 'HTML' });
@@ -1738,6 +1767,143 @@ bot.onText(/\/admin_test/, async (msg) => {
   } catch (error) {
     console.error('❌ Error in admin_test command:', error);
     await sendMessageWithRateLimit(chatId, '❌ Error sending test message.');
+  }
+});
+
+// Batch processor debug command
+bot.onText(/\/batch_debug/, async (msg) => {
+  const chatId = msg.chat.id;
+  const adminId = msg.from.id;
+  
+  // Check if user is admin
+  try {
+    const chatMember = await bot.getChatMember(chatId, adminId);
+    if (!['creator', 'administrator'].includes(chatMember.status)) {
+      await sendMessageWithRateLimit(chatId, '❌ You need admin privileges to use this command.');
+      return;
+    }
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return;
+  }
+  
+  try {
+    const batchStatus = {
+      queueLength: batchProcessor.queue.length,
+      processing: batchProcessor.processing,
+      batchSize: batchProcessor.batchSize,
+      batchInterval: batchProcessor.batchInterval,
+      intervalActive: !!batchProcessor.interval,
+      cacheSize: messageCache.size,
+      processedMessages: processedMessages.size,
+      metrics: metrics
+    };
+    
+    const message = `🔍 **Batch Processor Debug** 🔍\n\n` +
+      `📦 **Queue Status:**\n` +
+      `• Queue Length: ${batchStatus.queueLength}\n` +
+      `• Processing: ${batchStatus.processing ? 'Yes' : 'No'}\n` +
+      `• Batch Size: ${batchStatus.batchSize}\n` +
+      `• Interval: ${batchStatus.batchInterval}ms\n` +
+      `• Interval Active: ${batchStatus.intervalActive ? 'Yes' : 'No'}\n\n` +
+      `💾 **Cache Status:**\n` +
+      `• Message Cache: ${batchStatus.cacheSize} users\n` +
+      `• Processed Messages: ${batchStatus.processedMessages}\n\n` +
+      `📊 **Metrics:**\n` +
+      `• Messages Processed: ${batchStatus.metrics.messagesProcessed}\n` +
+      `• Batch Updates: ${batchStatus.metrics.batchUpdates}\n` +
+      `• Errors: ${batchStatus.metrics.errors}\n\n` +
+      `🔧 **Queue Contents:**\n` +
+      `${batchStatus.queueLength > 0 ? 
+        batchProcessor.queue.map((item, index) => 
+          `${index + 1}. User ${item.telegramId}: +${item.data.xpEarned} XP (${item.data.messageCount} messages)`
+        ).join('\n') : 
+        'No items in queue'
+      }`;
+    
+    await sendMessageWithRateLimit(chatId, message, { parse_mode: 'Markdown' });
+    
+  } catch (error) {
+    console.error('❌ Error in batch_debug command:', error);
+    await sendMessageWithRateLimit(chatId, '❌ Error getting batch processor status.');
+  }
+});
+
+// Manual batch processing trigger
+bot.onText(/\/process_batch/, async (msg) => {
+  const chatId = msg.chat.id;
+  const adminId = msg.from.id;
+  
+  // Check if user is admin
+  try {
+    const chatMember = await bot.getChatMember(chatId, adminId);
+    if (!['creator', 'administrator'].includes(chatMember.status)) {
+      await sendMessageWithRateLimit(chatId, '❌ You need admin privileges to use this command.');
+      return;
+    }
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return;
+  }
+  
+  try {
+    if (batchProcessor.queue.length === 0) {
+      await sendMessageWithRateLimit(chatId, '📦 Queue is empty. No batch to process.');
+      return;
+    }
+    
+    if (batchProcessor.processing) {
+      await sendMessageWithRateLimit(chatId, '⏳ Batch is already processing. Please wait.');
+      return;
+    }
+    
+    console.log('🔧 Manual batch processing triggered by admin');
+    await batchProcessor.processBatch();
+    await sendMessageWithRateLimit(chatId, `✅ Manual batch processing completed. Processed ${batchProcessor.queue.length} items.`);
+    
+  } catch (error) {
+    console.error('❌ Error in manual batch processing:', error);
+    await sendMessageWithRateLimit(chatId, '❌ Error processing batch.');
+  }
+});
+
+// Test XP system command
+bot.onText(/\/test_xp (.+)/, async (msg, match) => {
+  const chatId = msg.chat.id;
+  const adminId = msg.from.id;
+  const args = match[1].split(' ');
+  
+  // Check if user is admin
+  try {
+    const chatMember = await bot.getChatMember(chatId, adminId);
+    if (!['creator', 'administrator'].includes(chatMember.status)) {
+      await sendMessageWithRateLimit(chatId, '❌ You need admin privileges to use this command.');
+      return;
+    }
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return;
+  }
+  
+  try {
+    const targetUserId = parseInt(args[0]);
+    const xpAmount = parseInt(args[1]) || 1;
+    
+    if (!targetUserId || !xpAmount) {
+      await sendMessageWithRateLimit(chatId, '❌ Usage: /test_xp <user_id> <xp_amount>');
+      return;
+    }
+    
+    console.log(`🧪 Testing XP system: Adding ${xpAmount} XP to user ${targetUserId}`);
+    
+    // Add to batch processor
+    batchProcessor.add(targetUserId, xpAmount, 'test');
+    
+    await sendMessageWithRateLimit(chatId, `🧪 Added ${xpAmount} XP to user ${targetUserId}. Check /batch_debug to see queue status.`);
+    
+  } catch (error) {
+    console.error('❌ Error in test_xp command:', error);
+    await sendMessageWithRateLimit(chatId, '❌ Error testing XP system.');
   }
 });
 
@@ -2274,6 +2440,7 @@ bot.on('message', async (msg) => {
   
   // Quick duplicate check first (before any async operations)
   if (processedMessages.has(messageKey)) {
+    console.log(`🔄 Message already processed: ${messageKey}`);
     return; // Skip silently for performance
   }
   
@@ -2328,18 +2495,16 @@ bot.on('message', async (msg) => {
   
   // Performance monitoring
   messageCount++;
+  totalMessagesProcessed++;
   const currentTime = Date.now();
   const timeSinceLastMessage = currentTime - lastMessageTime;
   lastMessageTime = currentTime;
   
   // Log performance every 100 messages
   if (messageCount % PERFORMANCE_LOG_INTERVAL === 0) {
-    console.log(`📊 Performance Stats: ${messageCount} messages processed`);
+    logPerformanceStats();
+    console.log(`📊 Recent Performance: ${messageCount} messages processed`);
     console.log(`  - Time since last message: ${timeSinceLastMessage}ms`);
-    console.log(`  - Cache size: ${messageCache.size} users`);
-    console.log(`  - Processed messages: ${processedMessages.size}`);
-    console.log(`  - Queue size: ${messageQueue.length}`);
-    console.log(`  - Active users: ${userMessageHistory.size}`);
   }
   
   console.log('📨 Message received:', {
@@ -2350,183 +2515,11 @@ bot.on('message', async (msg) => {
     messageType: msg.photo ? 'photo' : 'text'
   });
   
-  // Process message asynchronously without blocking
-  processMessageAsync(msg, messageKey, userId, messageText, userDisplayName).catch(error => {
-    console.error('❌ Error in async message processing:', error);
-  });
+  // Use optimized message processing (Discord bot style)
+  await processMessageOptimized(msg, messageKey, userId, messageText, userDisplayName);
 });
 
-// Async message processing function
-async function processMessageAsync(msg, messageKey, userId, messageText, userDisplayName) {
-  try {
-    // Use optimized message processing
-    await processMessageOptimized(msg, messageKey, userId, messageText, userDisplayName);
-    
-    // Check if user is connected (with timeout and circuit breaker)
-    const userCheckPromise = dbCircuitBreaker.execute(async () => {
-      return await supabase
-        .from('telegram_users')
-        .select('*')
-        .eq('telegram_id', userId)
-        .single();
-    });
-    
-    // Add timeout to prevent hanging
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('User check timeout')), 3000)
-    );
-    
-    const { data: telegramUser, error: userError } = await Promise.race([
-      userCheckPromise,
-      timeoutPromise
-    ]);
-    
-    if (userError || !telegramUser) {
-      // User not connected, remove from processed set
-      processedMessages.delete(messageKey);
-      
-      // Send private connection reminder (only once per session to avoid spam)
-      const connectionReminderKey = `connection_reminder_${userId}`;
-      if (!processedMessages.has(connectionReminderKey)) {
-        try {
-          const reminderMessage = `⚠️ <b>Account Not Connected</b> ⚠️\n\n👋 <b>Hello!</b> I noticed you're chatting but your account isn't connected to our system.\n\n<b>Status:</b> ❌ Not Connected\n<b>Chat Activity:</b> ❌ No XP Rewards\n<b>Daily Rewards:</b> ❌ Not Available\n\n<b>How to Connect:</b>\n1️⃣ Visit: <a href='https://bblip.io/social-connections'>bblip.io/social-connections</a>\n2️⃣ Connect your wallet (MetaMask, etc.)\n3️⃣ Click "Connect Telegram"\n\n<b>After connecting, you'll get:</b>\n• XP for every message\n• Daily BBLP rewards\n• Level up notifications\n• Community leaderboards\n\n🚀 <b>Connect now to start earning!</b>`;
-          const keyboard = {
-            inline_keyboard: [[
-              {
-                text: '🔗 Connect Wallet',
-                url: 'https://bblip.io/social-connections'
-              }
-            ]]
-          };
-          await bot.sendMessage(userId, reminderMessage, {
-            parse_mode: 'HTML',
-            reply_markup: keyboard
-          });
-          
-          console.log(`📱 Connection reminder sent to @${userDisplayName} (${userId})`);
-          
-          // Mark as sent to avoid spam
-          processedMessages.set(connectionReminderKey, true);
-          
-          // Remove reminder key after 1 hour to allow future reminders
-          setTimeout(() => {
-            processedMessages.delete(connectionReminderKey);
-          }, 60 * 60 * 1000); // 1 hour
-          
-        } catch (error) {
-          console.error(`❌ Error sending connection reminder to @${userDisplayName}:`, error);
-        }
-      }
-      
-      return;
-    }
-    
-    // Calculate XP for this message
-    const xpEarned = XP_REWARDS.MESSAGE; // Faydalı mesaj XP'si kaldırıldı
-    
-    // Get current user activity to check level up (with circuit breaker)
-    const { data: currentActivity, error: activityError } = await dbCircuitBreaker.execute(async () => {
-      return await supabase
-        .from('telegram_activities')
-        .select('total_xp, current_level')
-        .eq('telegram_id', userId)
-        .single();
-    });
-    
-    let oldLevel = 1;
-    let currentTotalXP = 0;
-    
-    if (!activityError && currentActivity) {
-      oldLevel = currentActivity.current_level;
-      currentTotalXP = currentActivity.total_xp;
-    }
-    
-    // Update cache atomically (optimized)
-    let cached = messageCache.get(userId);
-    if (cached) {
-      cached.messageCount += 1;
-      cached.xpEarned += xpEarned;
-      cached.lastUpdate = Date.now();
-      cached.processedMessages.add(messageKey);
-    } else {
-      cached = {
-        messageCount: 1,
-        xpEarned: xpEarned,
-        lastUpdate: Date.now(),
-        processedMessages: new Set([messageKey])
-      };
-      messageCache.set(userId, cached);
-    }
-    
-    // Check for real-time level up (including cache)
-    const newTotalXP = currentTotalXP + cached.xpEarned;
-    const newLevel = calculateLevel(newTotalXP);
-    
-    console.log(`📊 Cache updated for user ${userDisplayName} (${userId}):`, {
-      messageCount: cached.messageCount,
-      xpEarned: cached.xpEarned,
-      processedMessages: cached.processedMessages.size,
-      oldLevel,
-      newLevel,
-      currentTotalXP,
-      newTotalXP
-    });
-    
-    // Check for real-time level up
-    if (newLevel > oldLevel) {
-      console.log(`🎉 REAL-TIME LEVEL UP detected for user ${userDisplayName} (${userId}): ${oldLevel} → ${newLevel}`);
-      
-      // Get user info for notification
-      const { data: userInfo, error: userError } = await supabase
-        .from('telegram_users')
-        .select('username, first_name')
-        .eq('telegram_id', userId)
-        .single();
-      
-      if (!userError && userInfo) {
-        const username = userInfo.username || userInfo.first_name;
-        const levelName = getLevelName(newLevel);
-        const oldLevelName = getLevelName(oldLevel);
-        const newReward = getLevelReward(newLevel);
-        
-        const levelUpMessage = `🎉 **REAL-TIME LEVEL UP!** 🎉\n\n` +
-          `Congratulations @${username}! 🏆\n\n` +
-          `You've leveled up from **${oldLevelName}** to **${levelName}**!\n` +
-          `⭐ Total XP: ${newTotalXP} (including pending)\n` +
-          `💬 Messages: ${currentActivity?.message_count + cached.messageCount || cached.messageCount}\n\n` +
-          `🎁 Daily Reward: ${newReward} BBLP/day\n\n` +
-          `⚡ This is a real-time level up! Your XP will be saved in the next batch.`;
-        
-        // Send notification to group
-        try {
-          await sendMessageWithRateLimit(GROUP_ID, levelUpMessage);
-          console.log(`✅ Real-time level up notification sent for user ${userDisplayName}: ${oldLevelName} → ${levelName}`);
-          
-          // Send to admin group
-          await sendAdminLog(
-            `🎉 Real-Time Level Up\n\n` +
-            `User: @${username} (${userId})\n` +
-            `Level: ${oldLevelName} → ${levelName}\n` +
-            `XP: ${currentTotalXP} → ${newTotalXP}\n` +
-            `Reward: ${newReward} BBLP/day`,
-            'LEVEL_UP'
-          );
-        } catch (error) {
-          console.error('❌ Error sending real-time level up notification:', error);
-          console.error('Error details:', JSON.stringify(error, null, 2));
-          await sendAdminError(error, 'Real-time level up notification');
-        }
-      } else {
-        console.log(`⚠️ Could not get user info for real-time level up notification: ${userError || 'No user data'}`);
-      }
-    }
-    
-  } catch (error) {
-    console.error('❌ Error processing message:', error);
-    // Remove from processed set on error
-    processedMessages.delete(messageKey);
-  }
-}
+
 
 // Helper functions
 function isHelpfulMessage(text) {

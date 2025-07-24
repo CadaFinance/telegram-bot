@@ -102,6 +102,14 @@ class BatchProcessor {
     this.interval = null;
   }
   
+  calculateLevel(totalXP) {
+    if (totalXP < 251) return 1; // Bronze
+    if (totalXP < 501) return 2; // Silver
+    if (totalXP < 1001) return 3; // Gold
+    if (totalXP < 2001) return 4; // Platinum
+    return 5; // Diamond
+  }
+  
   start() {
     console.log('[BatchProcessor] Starting batch interval:', this.batchInterval, 'ms');
     this.interval = setInterval(() => {
@@ -118,9 +126,32 @@ class BatchProcessor {
     }
   }
   
-  add(update) {
-    this.queue.push(update);
-    console.log('[BatchProcessor] Update added to queue. Queue length:', this.queue.length, 'Update:', update);
+  add(telegramId, xpAmount, reason = 'activity') {
+    console.log(`[BatchProcessor] add() called with: ${telegramId}, ${xpAmount} XP, ${reason}`);
+    
+    // Check if user already has pending updates
+    const existingIndex = this.queue.findIndex(item => item.telegramId === telegramId);
+    
+    if (existingIndex !== -1) {
+      // Merge with existing update
+      const existing = this.queue[existingIndex];
+      existing.data.xpEarned += xpAmount;
+      existing.data.messageCount += 1;
+      console.log(`[BatchProcessor] Merged update for user ${telegramId}. Total: ${existing.data.xpEarned} XP`);
+    } else {
+      // Add new update
+      this.queue.push({
+        telegramId: telegramId,
+        data: {
+          messageCount: 1,
+          xpEarned: xpAmount
+        }
+      });
+      console.log(`[BatchProcessor] New update added for user ${telegramId}: ${xpAmount} XP`);
+    }
+    
+    console.log('[BatchProcessor] Queue length:', this.queue.length);
+    
     if (this.queue.length >= this.batchSize) {
       console.log('[BatchProcessor] Queue reached batch size. Triggering processBatch.');
       this.processBatch();
@@ -140,23 +171,59 @@ class BatchProcessor {
     const batch = this.queue.splice(0, this.batchSize);
     console.log('[BatchProcessor] Processing batch. Batch size:', batch.length, 'Batch:', JSON.stringify(batch));
     try {
-      // Her kullanıcı için mevcut total_xp'yi çekip cache ile topla
+      // Process each user's XP update (Discord bot style - no user connection check)
+      const batchUpdates = [];
+      
       for (const update of batch) {
         const { telegramId, data } = update;
-        const { data: activity, error } = await supabase
-          .from('telegram_activities')
-          .select('total_xp')
-          .eq('telegram_id', telegramId)
-          .single();
-        let currentTotalXP = 0;
-        if (!error && activity && typeof activity.total_xp === 'number') {
-          currentTotalXP = activity.total_xp;
+        
+        try {
+          // Get current activity from database (no connection check)
+          const { data: activity, error } = await dbCircuitBreaker.execute(async () => {
+            return await supabase
+              .from('telegram_activities')
+              .select('total_xp, current_level, message_count')
+              .eq('telegram_id', telegramId)
+              .single();
+          });
+          
+          let currentTotalXP = 0;
+          let currentLevel = 1;
+          let currentMessageCount = 0;
+          
+          if (!error && activity) {
+            currentTotalXP = activity.total_xp || 0;
+            currentLevel = activity.current_level || 1;
+            currentMessageCount = activity.message_count || 0;
+          }
+          
+          // Calculate new XP and level
+          const newTotalXP = currentTotalXP + data.xpEarned;
+          const newMessageCount = currentMessageCount + data.messageCount;
+          const newLevel = this.calculateLevel(newTotalXP);
+          
+          batchUpdates.push({
+            telegram_id: telegramId,
+            message_count: newMessageCount,
+            total_xp: newTotalXP,
+            current_level: newLevel,
+            last_activity: new Date().toISOString()
+          });
+          
+          console.log(`📊 User ${telegramId}: ${currentTotalXP} + ${data.xpEarned} = ${newTotalXP} XP (Level ${newLevel}), Messages: ${currentMessageCount} + ${data.messageCount} = ${newMessageCount}`);
+          
+        } catch (error) {
+          console.error(`❌ Error processing XP update for ${telegramId}:`, error);
         }
-        update.data.totalXP = currentTotalXP + data.xpEarned;
       }
-      await this.executeBatch(batch);
-      metrics.batchUpdates++;
-      console.log('[BatchProcessor] Batch processed successfully.');
+      
+      if (batchUpdates.length > 0) {
+        await this.executeBatch(batchUpdates);
+        metrics.batchUpdates++;
+        console.log('[BatchProcessor] Batch processed successfully.');
+      } else {
+        console.log('[BatchProcessor] No valid updates to process.');
+      }
     } catch (error) {
       console.error('[BatchProcessor] Batch processing error:', error);
       metrics.errors++;
@@ -165,19 +232,13 @@ class BatchProcessor {
     }
   }
   
-  async executeBatch(batch) {
-    console.log('[BatchProcessor] Executing batch upsert. Updates:', JSON.stringify(batch));
-    const updates = batch.map(({ telegramId, data }) => ({
-      telegram_id: telegramId,
-      message_count: data.messageCount,
-      total_xp: data.totalXP, // cache + db toplamı
-      updated_at: new Date().toISOString()
-    }));
+  async executeBatch(batchUpdates) {
+    console.log('[BatchProcessor] Executing batch upsert. Updates:', JSON.stringify(batchUpdates));
     
     return await dbCircuitBreaker.execute(async () => {
       const { error } = await supabase
         .from('telegram_activities')
-        .upsert(updates, { 
+        .upsert(batchUpdates, { 
           onConflict: 'telegram_id',
           ignoreDuplicates: false 
         });
@@ -186,8 +247,22 @@ class BatchProcessor {
         console.error('[BatchProcessor] Upsert error:', error);
         throw error;
       }
-      console.log('[BatchProcessor] Upsert successful. Row count:', updates.length);
-      return { processed: updates.length };
+      console.log('[BatchProcessor] Upsert successful. Row count:', batchUpdates.length);
+      
+      // Update cache for these users (don't reset, just update with new totals)
+      batchUpdates.forEach(update => {
+        const cachedData = messageCache.get(update.telegram_id);
+        if (cachedData) {
+          // Update cache with new totals and reset pending amounts
+          cachedData.totalXP = update.total_xp;
+          cachedData.messageCount = update.message_count;
+          cachedData.xpEarned = 0; // Reset pending XP
+          cachedData.pendingMessages = 0; // Reset pending messages
+          console.log(`🔄 Updated cache for user ${update.telegram_id}: ${update.total_xp} XP, ${update.message_count} messages`);
+        }
+      });
+      
+      return { processed: batchUpdates.length };
     });
   }
 }
@@ -266,58 +341,36 @@ async function processMessageOptimized(msg, messageKey, userId, messageText, use
   const startTime = Date.now();
   
   try {
+    console.log(`🚀 processMessageOptimized called for user ${userId} (@${userDisplayName})`);
+    
     // Check rate limiting
     if (!rateLimiter.isAllowed(userId)) {
       console.log(`⚠️ Rate limited user: ${userId}`);
       return;
     }
     
-    // Check if message already processed
-    if (processedMessages.has(messageKey)) {
-      metrics.cacheHits++;
-      return;
-    }
-    
-    // Add to processed messages
+    // Message is already marked as processed in main bot file
+    // Just add to processed messages for metrics
     processedMessages.set(messageKey, true);
     
-    // Get cached user data
-    let cachedData = messageCache.get(userId);
-    if (!cachedData) {
-      cachedData = {
-        messageCount: 0,
-        xpEarned: 0,
-        processedMessages: new Set(),
-        lastUpdate: Date.now()
-      };
-      messageCache.set(userId, cachedData);
-      metrics.cacheMisses++;
-    } else {
-      metrics.cacheHits++;
-    }
-    
-    // Update cached data
-    cachedData.messageCount++;
-    cachedData.xpEarned += 1; // 1 XP per message
-    cachedData.processedMessages.set(messageKey, true);
-    cachedData.lastUpdate = Date.now();
+    // Add XP for message (Discord bot style - no user connection check)
+    console.log(`🎯 Adding XP for user ${userId} (@${userDisplayName}): +1 XP (message)`);
     
     // Add to batch processor
-    batchProcessor.add({
-      telegramId: userId,
-      data: {
-        messageCount: cachedData.messageCount,
-        xpEarned: cachedData.xpEarned
-      }
-    });
+    console.log(`📦 Adding to batch processor: ${userId} -> +1 XP`);
+    batchProcessor.add(userId, 1, 'message');
+    console.log(`✅ Added to batch processor. Queue length: ${batchProcessor.queue.length}`);
     
     // Update metrics
     const duration = Date.now() - startTime;
     metrics.messagesProcessed++;
     metrics.avgResponseTime = (metrics.avgResponseTime + duration) / 2;
     
+    console.log(`✅ XP added successfully for ${userId} (@${userDisplayName}) in ${duration}ms`);
+    
   } catch (error) {
     console.error('❌ Error in optimized message processing:', error);
+    console.error('❌ Error stack:', error.stack);
     metrics.errors++;
   }
 }
