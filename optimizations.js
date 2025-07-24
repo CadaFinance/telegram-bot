@@ -9,6 +9,8 @@ function setSupabaseClient(supabaseClient) {
   supabase = supabaseClient;
 }
 
+module.exports.setSupabaseClient = setSupabaseClient;
+
 // Optimized polling configuration
 const OPTIMIZED_POLLING_CONFIG = {
   interval: 500, // 500ms polling interval

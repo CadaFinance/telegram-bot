@@ -14,7 +14,8 @@ const {
   OPTIMIZED_POLLING_CONFIG,
   processMessageOptimized,
   cleanup,
-  initializeOptimizations
+  initializeOptimizations,
+  setSupabaseClient
 } = require('./optimizations');
 
 // Environment variables - Production values
