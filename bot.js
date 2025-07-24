@@ -22,7 +22,7 @@ const {
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8482465404:AAEXHvQ4s2lE3cPSRk5ZErG4w_ybvZjyEHA';
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://vdsoduzvmnuyhwbbnkwi.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkc29kdXp2bW51eWh3YmJua3dpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2MTczNDUsImV4cCI6MjA2NjE5MzM0NX0.stWTGS03eY8IdftKpeylOHURDAkmf6LiKas4_Jdd5cw';
-const GROUP_ID = process.env.TELEGRAM_GROUP_ID || '-1002823529287';
+const GROUP_ID = process.env.TELEGRAM_GROUP_ID || '-1001534528304';
 const ADMIN_GROUP_ID = process.env.TELEGRAM_ADMIN_GROUP_ID || '-1002879152667'; // Admin/Technical logs group
 const WEB_APP_URL = process.env.WEB_APP_URL || 'https://bblip.io';
 
@@ -3363,7 +3363,7 @@ async function setBotCommands() {
     await bot.setMyCommands(defaultCommands, { scope: { type: 'chat', chat_id: GROUP_ID } });
     console.log(`✅ Bot commands set for group ${GROUP_ID}`);
     
-    // Set Turkish commands for group
+    // Set Turkish commands for group 
     await bot.setMyCommands(turkishCommands, { scope: { type: 'chat', chat_id: GROUP_ID }, language_code: 'tr' });
     console.log(`✅ Turkish bot commands set for group ${GROUP_ID}`);
     
