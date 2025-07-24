@@ -135,7 +135,6 @@ initializeOptimizations();
 
 // Set supabase client for optimizations
 setSupabaseClient(supabase);
-
 console.log('🤖 [BOT] Bot initialized successfully');
 console.log('📊 [BOT] Supabase client initialized with connection pooling');
 console.log('🚀 [BOT] Optimizations initialized');
