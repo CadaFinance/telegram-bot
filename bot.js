@@ -171,8 +171,8 @@ console.log('📈 [BOT] Performance monitoring enabled');
 console.log('🔍 [BOT] Ready to listen for messages...');
 
 // XP calculation constants
-const XP_REWARDS = {
-  MESSAGE: 1,
+const XP_REWARDS = { 
+  MESSAGE: 1, 
   DAILY_ACTIVE: 5,
   WEEKLY_STREAK: 10
 };
@@ -340,7 +340,7 @@ async function awardReferralXP(telegramId, xpAmount) {
     try {
       // Get or create referral link for this user
       // const referralLink = await generateReferralLink(telegramId); // no longer needed for button
-      const congratulationMessage = `🎉 *Congratulations\!* 🎉\n\n👥 *You successfully referred a new user\!*\n\n🎁 *Rewards Earned:*\n• XP: \\+${xpAmount}\n• BBLP: \\+${REFERRAL_BBLP_REWARD}\n\n📊 *Your New Stats:*\n• Total XP: ${newTotalXP.toLocaleString()}\n• Level: ${calculateLevel(newTotalXP)} \\(${getLevelName(calculateLevel(newTotalXP))}\\)\n\n💎 *Keep sharing your referral link to earn more rewards\!*\n\n🚀 *Next Goal:*\nShare your link with more friends and earn even more XP\!`;
+      const congratulationMessage = `🎉 *Congratulations\!* 🎉\n\n👥 *You successfully referred a new user\!*\n\n🎁 *Rewards Earned:*\n• XP: \\+${xpAmount}\n• Points: \\+${REFERRAL_BBLP_REWARD}\n\n📊 *Your New Stats:*\n• Total XP: ${newTotalXP.toLocaleString()}\n• Level: ${calculateLevel(newTotalXP)} \\(${getLevelName(calculateLevel(newTotalXP))}\\)\n\n💎 *Keep sharing your referral link to earn more rewards\!*\n\n🚀 *Next Goal:*\nShare your link with more friends and earn even more XP\!`;
         await bot.sendMessage(telegramId, congratulationMessage, { 
           parse_mode: 'Markdown'
         });
@@ -356,7 +356,7 @@ async function awardReferralXP(telegramId, xpAmount) {
 
 async function awardReferralBBLP(telegramId, bblpAmount) {
   try {
-    console.log(`🎁 Awarding ${bblpAmount} BBLP to referrer ${telegramId}`);
+    console.log(`🎁 Awarding ${bblpAmount} Points to referrer ${telegramId}`);
     
     // Get user's wallet connection
     const { data: telegramUser, error } = await supabase
@@ -366,7 +366,7 @@ async function awardReferralBBLP(telegramId, bblpAmount) {
       .single();
     
     if (error || !telegramUser) {
-      console.log(`⚠️ User ${telegramId} not connected to wallet, BBLP reward pending`);
+      console.log(`⚠️ User ${telegramId} not connected to wallet, Points reward pending`);
       return;
     }
     
@@ -381,10 +381,10 @@ async function awardReferralBBLP(telegramId, bblpAmount) {
         claimed: false
       }]);
     
-    console.log(`✅ Referral BBLP reward recorded for user ${telegramId}`);
+    console.log(`✅ Referral Points reward recorded for user ${telegramId}`);
     
   } catch (error) {
-    console.error(`❌ Error awarding referral BBLP:`, error);
+    console.error(`❌ Error awarding referral Points:`, error);
   }
 }
 
@@ -453,7 +453,7 @@ async function sendAccountConnectedMessage(telegramId, username) {
 🎯 *What You Can Do Now:*
 • Send messages to earn XP
 • Level up for better rewards
-• Claim daily BBLP tokens
+• Claim daily Points tokens
 • Share your referral link
 • Climb the leaderboard
 
@@ -465,7 +465,7 @@ async function sendAccountConnectedMessage(telegramId, username) {
 🚀 *Start earning XP by chatting\!*
 Your messages will earn you XP automatically\!
 
-🔗 *Connect wallet to get your referral link and earn BBLP rewards\!*`;
+🔗 *Connect wallet to get your referral link and earn Points rewards\!*`;
 
     const keyboard = {
       inline_keyboard: [
@@ -573,12 +573,12 @@ Hi @${username}, glad to have you in our global crypto community!
 
 What's next?
 - 🚀 Start earning rewards by chatting and engaging.
-- 💳 Connect your wallet to unlock daily BBLP token rewards.
+- 💳 Connect your wallet to unlock daily Points token rewards.
 - 🏆 Climb the leaderboard and win exclusive prizes.
 
 Quick Start:
 1. Connect your wallet below
-2. Start chatting to earn XP & BBLP
+2. Start chatting to earn XP & Points
 3. Use /help for all commands
 
 Your journey to smarter crypto rewards starts now!`;
@@ -633,7 +633,7 @@ Your journey to smarter crypto rewards starts now!`;
 
 💎 **What You'll Get After Connection:**
 • Real-time XP from messages
-• Daily BBLP token rewards
+• Daily Points token rewards
 • Level up notifications
 • Community leaderboards
 • Anti-bot protection
@@ -693,7 +693,7 @@ Click the button below to connect your account!`;
 🎯 **Your Journey Continues:**
 • Send messages to earn XP
 • Level up for better rewards
-• Claim daily BBLP tokens
+• Claim daily Points tokens
 • Climb the leaderboard
 
 ⚡ **Quick Commands:**
@@ -824,7 +824,7 @@ bot.onText(/\/start/, async (msg) => {
 
 💎 *What You'll Get:*
 • Real\-time XP from messages
-• Daily BBLP token rewards
+• Daily Points token rewards
 • Level up notifications
 • Community leaderboards
 
@@ -882,7 +882,7 @@ bot.onText(/\/start/, async (msg) => {
 
 💎 **What You'll Get:**
 • Real-time XP tracking
-• Daily BBLP rewards
+• Daily Points rewards
 • Level up notifications
 • Community leaderboards
 
@@ -912,16 +912,16 @@ BBLIP transforms your crypto into spendable currency with virtual and physical c
 4️⃣ Start earning XP instantly!
 
 💎 **Reward System:**
-🥉 Bronze (0-100 XP): 1 BBLP/day
-🥈 Silver (101-250 XP): 3 BBLP/day
-🥇 Gold (251-500 XP): 5 BBLP/day
-💎 Platinum (501-1000 XP): 10 BBLP/day
-👑 Diamond (1001+ XP): 20 BBLP/day
+🥉 Bronze (0-100 XP): 1 Points/day
+🥈 Silver (101-250 XP): 3 Points/day
+🥇 Gold (251-500 XP): 5 Points/day
+💎 Platinum (501-1000 XP): 10 Points/day
+👑 Diamond (1001+ XP): 20 Points/day
 
 ⚡ **Features:**
 • Real-time XP tracking
 • Instant level up notifications
-• Daily BBLP rewards
+• Daily Points rewards
 • Community leaderboards
 • Anti-bot protection
 
@@ -970,7 +970,7 @@ Your messages will earn you XP automatically!${referralProcessed ? '\n\n🎉 **R
 
 💎 **What You'll Get After Connection:**
 • Real-time XP from messages
-• Daily BBLP token rewards
+• Daily Points token rewards
 • Level up notifications
 • Community leaderboards
 • Anti-bot protection
@@ -1050,11 +1050,11 @@ Click the button below to connect your account!`;
 🚀 *Next Steps:*
 1️⃣ Join our main community group
 2️⃣ Start chatting to earn XP
-3️⃣ Connect your wallet for BBLP rewards
+3️⃣ Connect your wallet for Points rewards
 
 💎 *What You'll Get:*
 • Real\-time XP from messages
-• Daily BBLP token rewards
+• Daily Points token rewards
 • Level up notifications
 • Community leaderboards
 
@@ -1120,7 +1120,7 @@ Click the button below to connect your account!`;
       '',
       '🎁 *What You Get:*',
       `• +${safeXP} XP for every friend who joins`,
-      `• +${safeBBLP} BBLP tokens per referral`,
+      `• +${safeBBLP} Points tokens per referral`,
       '• Track your progress and climb the leaderboard!',
       '',
       '💡 *How it works:*',
@@ -1135,7 +1135,7 @@ Click the button below to connect your account!`;
     // Escape each line for MarkdownV2
     const safeMessage = messageLines.map(escapeMarkdownV2).join('\n');
 
-    const shareMessage = `🚀 Join me on BBLIP and unlock exclusive crypto rewards!\n\n💰 $100,000 Prize Pool! 💰\n\nBBLIP is the next-gen platform to earn, spend, and grow your crypto with real utility.\n\n👉 Tap the link to get started:\n${referralLink}\n\nWhy join?\n• Earn daily BBLP token rewards\n• Level up for bigger bonuses\n• Compete on the leaderboard\n• Invite friends and multiply your earnings!\n• Win a share of the $100,000 prize pool!\n\nLet's grow together in the BBLIP community!`;
+    const shareMessage = `🚀 Join me on BBLIP and unlock exclusive crypto rewards!\n\n💰 $100,000 Prize Pool! 💰\n\nBBLIP is the next-gen platform to earn, spend, and grow your crypto with real utility.\n\n👉 Tap the link to get started:\n${referralLink}\n\nWhy join?\n• Earn daily Points token rewards\n• Level up for bigger bonuses\n• Compete on the leaderboard\n• Invite friends and multiply your earnings!\n• Win a share of the $100,000 prize pool!\n\nLet's grow together in the BBLIP community!`;
 
     const keyboard = {
       inline_keyboard: [
@@ -1243,7 +1243,7 @@ bot.onText(/\/my_xp/, async (msg) => {
 
 💎 **After connection you'll get:**
 • Real-time XP tracking
-• Daily BBLP token rewards
+• Daily Points token rewards
 • Level up notifications
 • Community leaderboards
 
@@ -1386,7 +1386,7 @@ bot.onText(/\/leaderboard/, async (msg) => {
 
 💎 **After connection you'll get:**
 • Real-time XP tracking
-• Daily BBLP token rewards
+• Daily Points token rewards
 • Level up notifications
 • Community leaderboards
 
@@ -1478,7 +1478,7 @@ bot.onText(/\/help/, async (msg) => {
     }
   } catch (e) { /* ignore errors, treat as not admin */ }
 
-  let message = `🤖 <b>BBLIP Telegram Bot Help</b> 🤖\n\n<b>User Commands</b>\n/start — Connect your account\n/my_xp — View your XP & level\n/my_referral — Get your referral link\n/leaderboard — View top users\n/help — Show this help\n\n<b>How to Earn</b>\n• Chat to earn XP automatically\n• Invite friends for bonus rewards\n• Level up for bigger daily BBLP\n\n<i>Tip: Connect your wallet to unlock all features and maximize your rewards!</i>\n\nFor more info, visit <a href='https://bblip.io/social-connections'>bblip.io/social-connections</a>`;
+  let message = `🤖 <b>BBLIP Telegram Bot Help</b> 🤖\n\n<b>User Commands</b>\n/start — Connect your account\n/my_xp — View your XP & level\n/my_referral — Get your referral link\n/leaderboard — View top users\n/help — Show this help\n\n<b>How to Earn</b>\n• Chat to earn XP automatically\n• Invite friends for bonus rewards\n• Level up for bigger daily Points\n\n<i>Tip: Connect your wallet to unlock all features and maximize your rewards!</i>\n\nFor more info, visit <a href='https://bblip.io/social-connections'>bblip.io/social-connections</a>`;
 
   if (isAdmin) {
     message += `\n\n<b>Admin Commands</b>\n/ban, /unban, /restrict, /warn, /batch_debug, /process_batch, /test_xp`;
@@ -2003,7 +2003,7 @@ bot.onText(/\/my_referral/, async (msg) => {
     if (error || !telegramUser) {
       // Send private connection message
       try {
-        const privateMessage = `🔗 <b>Connect Wallet to Get Your Referral Link</b>\n\n👋 <b>Hello!</b> To get your referral link and start earning BBLP rewards, please connect your wallet.\n\n<b>Status:</b> ❌ Not Connected\n<b>Referral Link:</b> ❌ Not Available\n<b>BBLP Rewards:</b> ❌ Not Available\n\n<b>How to Connect:</b>\n1️⃣ Visit: <a href='https://bblip.io/social-connections'>bblip.io/social-connections</a>\n2️⃣ Connect your wallet (MetaMask, etc.)\n3️⃣ Click "Connect Telegram"\n\n<b>After connecting, you'll get:</b>\n• Your personal referral link\n• XP & BBLP rewards for each referral\n• Daily BBLP token rewards\n\n🚀 <b>Connect now to unlock your rewards!</b>`;
+        const privateMessage = `🔗 <b>Connect Wallet to Get Your Referral Link</b>\n\n👋 <b>Hello!</b> To get your referral link and start earning Points rewards, please connect your wallet.\n\n<b>Status:</b> ❌ Not Connected\n<b>Referral Link:</b> ❌ Not Available\n<b>Points Rewards:</b> ❌ Not Available\n\n<b>How to Connect:</b>\n1️⃣ Visit: <a href='https://bblip.io/social-connections'>bblip.io/social-connections</a>\n2️⃣ Connect your wallet (MetaMask, etc.)\n3️⃣ Click "Connect Telegram"\n\n<b>After connecting, you'll get:</b>\n• Your personal referral link\n• XP & Points rewards for each referral\n• Daily Points token rewards\n\n🚀 <b>Connect now to unlock your rewards!</b>`;
         const keyboard = {
           inline_keyboard: [[
             {
@@ -2069,7 +2069,7 @@ bot.onText(/\/my_referral/, async (msg) => {
       '',
       '🎁 *What You Get:*',
       `• +${safeXP} XP for every friend who joins`,
-      `• +${safeBBLP} BBLP tokens per referral`,
+      `• +${safeBBLP} Points tokens per referral`,
       '• Track your progress and climb the leaderboard!',
       '',
       '💡 *How it works:*',
@@ -2084,7 +2084,7 @@ bot.onText(/\/my_referral/, async (msg) => {
     // Escape each line for MarkdownV2
     const safeMessage = messageLines.map(escapeMarkdownV2).join('\n');
 
-    const shareMessage = `🚀 Join me on BBLIP and unlock exclusive crypto rewards!\n\n💰 $100,000 Prize Pool! 💰\n\nBBLIP is the next-gen platform to earn, spend, and grow your crypto with real utility.\n\n👉 Tap the link to get started:\n${referralLink}\n\nWhy join?\n• Earn daily BBLP token rewards\n• Level up for bigger bonuses\n• Compete on the leaderboard\n• Invite friends and multiply your earnings!\n• Win a share of the $100,000 prize pool!\n\nLet's grow together in the BBLIP community!`;
+    const shareMessage = `🚀 Join me on BBLIP and unlock exclusive crypto rewards!\n\n💰 $100,000 Prize Pool! 💰\n\nBBLIP is the next-gen platform to earn, spend, and grow your crypto with real utility.\n\n👉 Tap the link to get started:\n${referralLink}\n\nWhy join?\n• Earn daily Points token rewards\n• Level up for bigger bonuses\n• Compete on the leaderboard\n• Invite friends and multiply your earnings!\n• Win a share of the $100,000 prize pool!\n\nLet's grow together in the BBLIP community!`;
 
     const keyboard = {
       inline_keyboard: [
@@ -2974,7 +2974,7 @@ async function updateUserActivity(telegramId, updates) {
             `You've leveled up from **${oldLevelName}** to **${levelName}**!\n` +
             `⭐ Total XP: ${newTotalXP}\n` +
             `💬 Messages: ${newMessageCount}\n\n` +
-            `🎁 Daily Reward: ${newReward} BBLP/day`;
+            `🎁 Daily Reward: ${newReward} Points/day`;
           // Add inline button for claiming daily rewards
           const levelUpKeyboard = {
             inline_keyboard: [[
@@ -3043,14 +3043,14 @@ async function checkMilestones(telegramId, totalXP, messageCount) {
     const username = userInfo.username || userInfo.first_name;
     let milestoneMessage = '';
     
-    // XP Milestones
+    // XP Milestones 
     if (totalXP === 100) {
       milestoneMessage = `🎯 **100 XP Milestone!** 🎯\n\n` +
         `Congratulations @${username}! You've reached 100 XP!\n` +
         `⭐ Keep up the great work!`;
     } else if (totalXP === 500) {
       milestoneMessage = `🔥 **500 XP Milestone!** 🔥\n\n` +
-        `Amazing @${username}! You've reached 500 XP!\n` +
+        `Amazing @${username}! You've reached 500 XP!\n` + 
         `⭐ You're on fire!`;
     } else if (totalXP === 1000) {
       milestoneMessage = `💎 **1000 XP Milestone!** 💎\n\n` +
@@ -3192,7 +3192,7 @@ console.log('🎉 Level Up System:');
 console.log('  - Real-time level detection: Instant');
 console.log('  - Batch processing: Every 60 seconds');
 console.log('  - Level names: Bronze, Silver, Gold, Platinum, Diamond');
-console.log('  - Level rewards: 1, 3, 5, 10, 20 BBLP/day');
+console.log('  - Level rewards: 1, 3, 5, 10, 20 Points/day');
 
 
 // Test bot commands function
@@ -3219,7 +3219,7 @@ async function testLevelUpSystem() {
       const level = calculateLevel(xp);
       const levelName = getLevelName(level);
       const reward = getLevelReward(level);
-      console.log(`  - ${xp} XP → Level ${level} (${levelName}) → ${reward} BBLP/day`);
+      console.log(`  - ${xp} XP → Level ${level} (${levelName}) → ${reward} Points/day`);
     });
     
     console.log('✅ Level up system test completed');
@@ -3396,7 +3396,7 @@ bot.startPolling().then(async () => {
         `👋 Welcome messages: Enabled (new_chat_members events)\n` +
         `🗑️ Auto-delete: ${WELCOME_MESSAGE_DELETE_ENABLED ? 'Enabled' : 'Disabled'} (${WELCOME_MESSAGE_DELETE_DELAY/1000}s)\n` +
         `📱 Private connection messages: Enabled\n` +
-        `🔗 Referral system: ${REFERRAL_SYSTEM_ENABLED ? 'Enabled' : 'Disabled'} (+${REFERRAL_XP_REWARD} XP, +${REFERRAL_BBLP_REWARD} BBLP) - Bot first, then group`,
+        `🔗 Referral system: ${REFERRAL_SYSTEM_ENABLED ? 'Enabled' : 'Disabled'} (+${REFERRAL_XP_REWARD} XP, +${REFERRAL_BBLP_REWARD} Points) - Bot first, then group`,
         'STARTUP'
       );
       console.log(`✅ Admin startup notification sent to group ${ADMIN_GROUP_ID}`);
@@ -3438,7 +3438,7 @@ console.log('  - /test_welcome - Test welcome message system (Admin)');
 console.log('👋 Auto Welcome: Enabled for new/returning members');
 console.log(`🗑️ Auto-delete: ${WELCOME_MESSAGE_DELETE_ENABLED ? 'Enabled' : 'Disabled'} (${WELCOME_MESSAGE_DELETE_DELAY/1000}s)`);
 console.log('📱 Private connection messages: Enabled for unconnected users');
-console.log(`🔗 Referral system: ${REFERRAL_SYSTEM_ENABLED ? 'Enabled' : 'Disabled'} (+${REFERRAL_XP_REWARD} XP, +${REFERRAL_BBLP_REWARD} BBLP per referral) - Bot first, then group`);
+console.log(`🔗 Referral system: ${REFERRAL_SYSTEM_ENABLED ? 'Enabled' : 'Disabled'} (+${REFERRAL_XP_REWARD} XP, +${REFERRAL_BBLP_REWARD} Points per referral) - Bot first, then group`);
 
 // Yeni anti-spam ve XP kontrolü
 global.userSpamData = global.userSpamData || new Map(); // telegramId -> { lastMessage: '', warnings: 0, messageTimestamps: [] }
